@@ -15,3 +15,5 @@ pyperclip
 pynput
 python-dotenv
 groq
+faster-whisper
+

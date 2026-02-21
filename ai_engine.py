@@ -16,6 +16,27 @@ genai.configure(api_key=GOOGLE_API_KEY)
 
 # Global model and chat session
 model = None
+
+async def analyze_image(image_path: str, prompt: str):
+    """Analyzes an image using Gemini 1.5 Flash Vision capabilities."""
+    try:
+        # Initialize model for vision (separate from chat)
+        vision_model = genai.GenerativeModel('gemini-1.5-flash')
+        
+        # Load image
+        if not os.path.exists(image_path):
+             return "Error: Image file not found."
+             
+        img = Image.open(image_path)
+        
+        # Generate content
+        # Run in thread to avoid blocking event loop
+        response = await asyncio.to_thread(vision_model.generate_content, [prompt, img])
+        return response.text
+    except Exception as e:
+        logging.error(f"Vision analysis failed: {e}")
+        return f"Error analyzing image: {e}"
+
 chat_session = None
 
 # Groq Globals
@@ -92,21 +113,23 @@ Your goal is to accelerate development tasks: coding, debugging, and file manage
    - Repeat until success or max retries.
    - DO NOT ask for permission to fix syntax errors. JUST FIX IT.
 
-2. **Smart Context**:
+2. **Smart Context & RAG**:
    - You have access to the active window title. Use it to infer context.
-   - If the user says "Fix this", and the active window is "main.py - VS Code", analyze that file.
+   - Use `read_project_context(keywords="...")` to find relevant files instead of reading everything.
+   - If the user says "Fix auth", call `read_project_context(keywords="auth, login")`.
 
-3. **Research Agent**:
-   - For technical questions ("latest React features", "Python 3.12 changes"), use 'deep_search'.
-   - Synthesize answers from official documentation and credible tech sources.
+3. **Vision-Guided Interaction**:
+   - Use `vision_click("description")` to find and click elements visually.
+   - Prefer this over `click_at_coordinates` for robustness.
+   - If you need to see the screen, use `take_screenshot`.
 
-4. **Web Navigation**:
-   - Construct URLs for direct navigation.
-   - "Open GitHub issues for React" -> open_website("https://github.com/facebook/react/issues")
+4. **Web Navigation (Playwright)**:
+   - Use `browse_web`, `web_click`, `web_type` for reliable browser automation.
+   - These tools use a real browser (not headless), so the user sees the action.
 
-5. **UI Interaction**:
-   - Use 'click_at_coordinates' or 'type_text' only when API methods are unavailable.
-   - Request screenshots if coordinates are needed and not provided.
+5. **Planner Awareness**:
+   - Complex tasks are automatically broken down into steps.
+   - Execute the current step efficiently.
 
 Always output clear, executable code or direct answers.
 """

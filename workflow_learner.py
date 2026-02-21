@@ -9,6 +9,7 @@ import ai_engine
 import shutil
 from datetime import datetime
 from PyQt5.QtCore import QObject, pyqtSignal
+from pywinauto import Desktop
 
 class WorkflowLearner(QObject):
     finished_signal = pyqtSignal(str)
@@ -68,13 +69,28 @@ class WorkflowLearner(QObject):
         screenshot_path = os.path.join(self.screenshot_dir, f"click_{int(timestamp*1000)}.png")
         pyautogui.screenshot(screenshot_path)
         
+        # Get UI Element info using pywinauto (UIA)
+        try:
+            # We try UIA first as it gives better info for modern apps
+            elem = Desktop(backend="uia").from_point(x, y)
+            element_info = {
+                "title": elem.window_text(),
+                "control_type": elem.element_type,
+                "auto_id": elem.automation_id(),
+                "class_name": elem.class_name(),
+                "parent_title": elem.top_level_parent().window_text() if elem.top_level_parent() else "Unknown"
+            }
+        except Exception as e:
+            element_info = f"Error getting element info: {str(e)}"
+
         self.events.append({
             "type": "click",
             "x": x,
             "y": y,
             "button": str(button),
             "timestamp": timestamp,
-            "screenshot": screenshot_path
+            "screenshot": screenshot_path,
+            "element_info": element_info
         })
 
     def on_press(self, key):
@@ -98,22 +114,14 @@ class WorkflowLearner(QObject):
             loop = asyncio.new_event_loop()
             asyncio.set_event_loop(loop)
             script = loop.run_until_complete(ai_engine.generate_workflow_script(self.events))
-            loop.close()
             
-            # Save to workspace
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            filename = f"learned_workflow_{timestamp}.py"
-            filepath = os.path.join("workspace", filename)
-            
-            with open(filepath, "w", encoding="utf-8") as f:
+            # Save Script
+            filename = f"workspace/learned_workflow_{datetime.now().strftime('%Y%m%d_%H%M%S')}.py"
+            with open(filename, "w", encoding="utf-8") as f:
                 f.write(script)
                 
             self.finished_signal.emit(f"Workflow learned and saved to {filename}")
             
         except Exception as e:
             logging.error(f"Workflow processing failed: {e}")
-            self.finished_signal.emit(f"Error learning workflow: {e}")
-        finally:
-            # Cleanup
-            # shutil.rmtree(self.screenshot_dir) # Optional: keep for debug
-            pass
+            self.finished_signal.emit(f"Error processing workflow: {e}")

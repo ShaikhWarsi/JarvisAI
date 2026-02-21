@@ -17,8 +17,29 @@ import traceback
 import json
 import config
 import ctypes
+import web_automation
 
 # logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+
+# Global callback for status updates (to be set by GUI)
+status_callback = None
+stop_execution_flag = False
+
+def set_status_callback(callback):
+    """Sets the callback function for status updates."""
+    global status_callback
+    status_callback = callback
+
+def stop_execution():
+    """Signals the task manager to stop current execution."""
+    global stop_execution_flag
+    stop_execution_flag = True
+    update_status("🛑 Execution Stopping...")
+
+def update_status(message: str):
+    """Updates the UI status if a callback is registered."""
+    if status_callback:
+        status_callback(message)
 
 task_queue = []
 task_history = []
@@ -29,18 +50,21 @@ if not os.path.exists(WORKSPACE_DIR):
 
 def speak(text):
     print(text)
-    # Ideally integrate pyttsx3 here for TTS
+    # This will be overridden by gui.py to use the real speech engine
     pass
 
 def _maximize_active_window():
-    """Helper to maximize the active window after launch."""
-    time.sleep(1.5) # Wait for window to appear
-    try:
-        win = gw.getActiveWindow()
-        if win:
-            win.maximize()
-    except:
-        pass
+    """Helper to maximize the active window after launch using a polling loop."""
+    start_time = time.time()
+    while time.time() - start_time < 5:  # 5 second timeout
+        try:
+            win = gw.getActiveWindow()
+            if win:
+                win.maximize()
+                return
+        except:
+            pass
+        time.sleep(0.1)
 
 def open_application(app_name: str):
     """Opens an application using robust path finding.
@@ -357,6 +381,9 @@ async def run_python_script(script_path: str):
                 # Failure
                 output_log += f"\n--- Attempt {attempt+1} Failed ---\nOutput: {output}\nError: {error}\n"
                 
+                # Update UI Status: Error Detected
+                update_status(f"🔴 Error Detected (Attempt {attempt+1})")
+                
                 # Check for specific ModuleNotFoundError to fast-track install
                 if "ModuleNotFoundError" in error:
                      import re
@@ -364,20 +391,31 @@ async def run_python_script(script_path: str):
                      if match:
                          missing_module = match.group(1)
                          logging.info(f"Installing missing module: {missing_module}")
+                         
+                         update_status(f"📦 Installing Missing Module: {missing_module}")
+                         speak(f"Missing module {missing_module} detected. Installing it now...")
+                         
                          install_res = install_python_library(missing_module) # Blocking is fine here
                          output_log += f"Installed {missing_module}: {install_res}\n"
                          continue # Retry immediately after install without rewriting code yet
 
                 # General Error -> Ask AI to fix
                 logging.info("Requesting AI fix for script error...")
+                
+                update_status(f"🟡 Analyzing Traceback & Patching Code...")
+                speak(f"Script error detected on attempt {attempt+1}. requesting AI fix...")
                 try:
                     fixed_code = await ai_engine.fix_code(current_code, error)
                     if fixed_code:
                         with open(script_path, 'w', encoding='utf-8') as f:
                             f.write(fixed_code)
                         output_log += "AI applied a fix. Retrying...\n"
+                        
+                        update_status(f"🟢 Patch Applied. Retrying... 🚀")
+                        speak("AI fix applied. Retrying execution...")
                     else:
                         output_log += "AI failed to generate a fix.\n"
+                        update_status(f"❌ AI Fix Failed")
                         break # Stop if AI fails
                 except Exception as ai_e:
                      output_log += f"AI Fix Error: {ai_e}\n"
@@ -527,6 +565,133 @@ from email.mime.text import MIMEText
 import imaplib
 import email
 from config import EMAIL_USER, EMAIL_PASSWORD
+import json
+import re
+
+def vision_click(element_description: str):
+    """Uses AI Vision to find and click an element on the screen.
+    
+    Args:
+        element_description: Description of what to click (e.g., 'Spotify icon', 'Send button').
+    """
+    try:
+        # 1. Take Screenshot
+        screenshot_path = take_screenshot()
+        if "Error" in screenshot_path:
+            return screenshot_path
+            
+        # 2. Ask AI for Coordinates
+        prompt = f"""
+        I need to click on '{element_description}'.
+        Analyze the screenshot and identify the center coordinates (x, y) of this element.
+        Return ONLY a JSON object with keys 'x' and 'y'. 
+        Example: {{"x": 500, "y": 300}}
+        Do not add any markdown formatting.
+        """
+        
+        # We need to run async ai_engine call from this sync function
+        # Since this is called from execute_task which is async, we can't easily await if this isn't async.
+        # However, available_tools maps to functions. execute_task handles coroutines.
+        # So we should make this async.
+        return "Async function required. Please update AVAILABLE_TOOLS mapping."
+        
+    except Exception as e:
+        return f"Error in vision_click: {e}"
+
+async def vision_click_async(element_description: str):
+    """Uses AI Vision to find and click an element on the screen (Async)."""
+    update_status(f"👁️ Looking for '{element_description}'...")
+    try:
+        screenshot_path = take_screenshot()
+        
+        prompt = f"""
+        Find the center coordinates of the '{element_description}' in this image.
+        Return ONLY a JSON object: {{"x": 123, "y": 456}}
+        """
+        
+        # Call AI Engine
+        response_text = await ai_engine.analyze_image(screenshot_path, prompt)
+        
+        # Parse JSON
+        import re
+        json_str = ""
+        match = re.search(r'\{.*\}', response_text, re.DOTALL)
+        if match:
+             json_str = match.group(0)
+        else:
+             json_str = response_text.replace("```json", "").replace("```", "").strip()
+             
+        coords = json.loads(json_str)
+        
+        x = coords.get("x")
+        y = coords.get("y")
+        
+        if x is not None and y is not None:
+            update_status(f"🎯 Clicking '{element_description}' at ({x}, {y})")
+            return click_at_coordinates(int(x), int(y))
+        else:
+            return f"Could not find coordinates for '{element_description}'. AI Response: {response_text}"
+            
+    except Exception as e:
+        return f"Vision Click Failed: {e}"
+
+def read_project_context(keywords: str = None):
+    """Reads and summarizes the current project files to provide context.
+    
+    Args:
+        keywords: Optional comma-separated keywords to filter files (e.g., "auth, login, user").
+                  If None, scans for relevant code files efficiently.
+    """
+    update_status(f"📂 Indexing Project Files...")
+    try:
+        context = "Project Context:\n"
+        
+        # Parse keywords if provided
+        search_terms = [k.strip().lower() for k in keywords.split(",")] if keywords else []
+        
+        # Scan Workspace
+        file_count = 0
+        MAX_FILES = 15
+        
+        for root, dirs, files in os.walk(os.getcwd()):
+            if "venv" in root or "__pycache__" in root or ".git" in root or "node_modules" in root:
+                continue
+                
+            for file in files:
+                if file.endswith(('.py', '.java', '.js', '.html', '.css', '.md', '.txt', '.json')):
+                    file_path = os.path.join(root, file)
+                    
+                    try:
+                        with open(file_path, 'r', encoding='utf-8', errors='ignore') as f:
+                            content = f.read(4000) # Read first 4000 chars
+                            
+                            # Smart Filtering:
+                            # 1. If keywords exist, check if any keyword is in the file content
+                            # 2. If no keywords, take the file (default behavior, but prioritized)
+                            
+                            is_relevant = False
+                            if search_terms:
+                                if any(term in content.lower() for term in search_terms) or \
+                                   any(term in file.lower() for term in search_terms):
+                                    is_relevant = True
+                            else:
+                                is_relevant = True # No filter, take it
+                                
+                            if is_relevant:
+                                context += f"\n--- File: {file} ---\n{content}\n"
+                                file_count += 1
+                    except:
+                        pass
+            
+            if file_count >= MAX_FILES: 
+                break
+                
+        if file_count == 0 and search_terms:
+             return f"No files found containing keywords: {keywords}"
+             
+        return context
+    except Exception as e:
+        return f"Error reading context: {e}"
 
 def read_emails(limit: int = 5):
     """Reads the latest unread emails from the inbox.
@@ -604,55 +769,98 @@ AVAILABLE_TOOLS = {
     "type_text": type_text,
     "press_key": press_key,
     "get_active_window_title": get_active_window_title,
-    "deep_search": deep_search
+    "deep_search": deep_search,
+    "vision_click": vision_click_async,
+    "read_project_context": read_project_context,
+    "browse_web": web_automation.browse_web,
+    "web_click": web_automation.web_click,
+    "web_type": web_automation.web_type,
+    "web_read": web_automation.web_read,
+    "close_browser": web_automation.close_browser
 }
 
-async def execute_task(user_input: str):
-    """Process user input using AI and execute tools with a self-correcting loop."""
-    logging.info(f"Executing task: {user_input}")
+async def generate_plan(user_input: str):
+    """Uses AI to break down a complex task into steps."""
+    prompt = f"""
+    You are a Planner Agent. Break down this user request into a simple, sequential list of actionable steps for an AI agent.
+    User Request: "{user_input}"
     
-    # Check if we need to take a screenshot for context
-    screenshot_path = None
-    triggers = ["screen", "look at", "what is this", "debug", "fix", "error", "failing", "click", "interact", "mute"]
+    Return ONLY a valid JSON array of strings. 
+    Example: ["Open Chrome", "Go to google.com", "Search for 'Python'"]
+    Do not add markdown formatting or extra text.
+    """
+    try:
+        # We assume process_command handles the AI call. We pass empty tools to force text response.
+        response = await ai_engine.process_command(prompt, {}, None)
+        
+        content = ""
+        if isinstance(response, str):
+            content = response
+        elif hasattr(response, 'choices'): # Groq
+            content = response.choices[0].message.content
+        elif hasattr(response, 'text'): # Gemini
+            content = response.text
+            
+        # Clean markdown
+        content = content.replace("```json", "").replace("```", "").strip()
+        
+        steps = json.loads(content)
+        if isinstance(steps, list):
+            return steps
+        return None
+    except Exception as e:
+        logging.error(f"Planning failed: {e}")
+        return None
+
+async def _execute_step_logic(user_input: str, screenshot_path: str = None):
+    """Core execution logic for a single step (extracted from execute_task)."""
+    global stop_execution_flag
     
+    logging.info(f"Executing step: {user_input}")
+    
+    # Check if we need to take a screenshot for context (if not provided)
+    if not screenshot_path:
+        triggers = ["screen", "look at", "what is this", "debug", "fix", "error", "failing", "click", "interact", "mute"]
+        if any(trigger in user_input.lower() for trigger in triggers):
+             if os.path.exists(user_input) and user_input.endswith(('.png', '.jpg')):
+                 screenshot_path = user_input
+             else:
+                 screenshot_path = take_screenshot()
+             logging.info(f"Screenshot taken for context: {screenshot_path}")
+
     # Smart Context: Always get the active window title
     window_title = get_active_window_title()
     logging.info(f"Context: {window_title}")
     
-    # Inject context into the user input for the AI
-    # We don't change the original user_input for logging, but for the AI processing
+    # Inject context
     ai_input = f"User Input: {user_input}\nContext: {window_title}"
-
-    if any(trigger in user_input.lower() for trigger in triggers):
-        # We check if it's already a file path, otherwise take a fresh one
-        if os.path.exists(user_input) and user_input.endswith(('.png', '.jpg')):
-             screenshot_path = user_input
-        else:
-             screenshot_path = take_screenshot()
-        logging.info(f"Screenshot taken for context: {screenshot_path}")
 
     # Process with AI - Initial Call
     response = await ai_engine.process_command(ai_input, AVAILABLE_TOOLS, screenshot_path)
     
     final_output = ""
     loop_count = 0
-    max_loops = 5 # Prevent infinite loops
+    max_loops = 5 
     
     while loop_count < max_loops:
+        if stop_execution_flag:
+            return "🛑 Execution Stopped by User."
+            
         loop_count += 1
         
-        # 1. Handle String Response (Error or direct text from process_command fallback)
+        # 1. Handle String Response
         if isinstance(response, str):
             final_output = response
-            break # Exit loop
+            break 
             
-        # 2. Handle Groq Response (Check for 'choices' attribute)
+        # 2. Handle Groq Response
         elif hasattr(response, 'choices'):
             message = response.choices[0].message
             if message.tool_calls:
-                 # Execute ALL tools requested in parallel
                  tool_outputs = []
                  for tc in message.tool_calls:
+                     if stop_execution_flag: break
+                     
                      tool_name = tc.function.name
                      try:
                         tool_args = json.loads(tc.function.arguments)
@@ -664,7 +872,6 @@ async def execute_task(user_input: str):
                      result_content = ""
                      if tool_name in AVAILABLE_TOOLS:
                          try:
-                            # Execute the tool
                             import inspect
                             func = AVAILABLE_TOOLS[tool_name]
                             if inspect.iscoroutinefunction(func):
@@ -683,24 +890,25 @@ async def execute_task(user_input: str):
                      })
                      logging.info(f"Tool Result ({tool_name}): {result_content}")
 
-                 # Send batch results back to Groq
+                 if stop_execution_flag: break
                  response = await ai_engine.send_groq_tool_results(tool_outputs)
             
             elif message.content:
                 final_output = message.content
-                break # Exit loop
+                break
             else:
                 final_output = "I'm not sure what to do with this response."
                 break
 
         # 3. Handle Gemini GenerationResponse object
         elif hasattr(response, 'parts'):
-            # Check for function call
             fc = None
             if response.parts and len(response.parts) > 0 and response.parts[0].function_call:
                  fc = response.parts[0].function_call
             
             if fc:
+                if stop_execution_flag: break
+                
                 tool_name = fc.name
                 tool_args = dict(fc.args)
                 
@@ -708,18 +916,14 @@ async def execute_task(user_input: str):
                 
                 if tool_name in AVAILABLE_TOOLS:
                     try:
-                        # Execute the tool
                         import inspect
                         func = AVAILABLE_TOOLS[tool_name]
-                        
                         if inspect.iscoroutinefunction(func):
                             tool_result = await func(**tool_args)
                         else:
                             tool_result = func(**tool_args)
                         
                         logging.info(f"Tool Result: {tool_result}")
-                        
-                        # FEEDBACK LOOP: Send result back to AI
                         response = await ai_engine.send_tool_result(tool_name, tool_result)
                         
                     except Exception as e:
@@ -731,10 +935,9 @@ async def execute_task(user_input: str):
                     logging.error(error_msg)
                     response = await ai_engine.send_tool_result(tool_name, error_msg)
             
-            # Check for text response (Final Answer)
             elif response.parts and response.parts[0].text:
                 final_output = response.text
-                break # Exit loop
+                break 
                 
             else:
                 final_output = "I'm not sure what to do with this response."
@@ -743,5 +946,39 @@ async def execute_task(user_input: str):
             final_output = f"Unexpected response type: {type(response)}"
             break
 
-    task_history.append(f"Cmd: {user_input} -> {final_output}")
     return final_output
+
+async def execute_task(user_input: str):
+    """Process user input using AI and execute tools with a self-correcting loop and planning."""
+    global stop_execution_flag
+    stop_execution_flag = False
+    
+    logging.info(f"Executing task: {user_input}")
+    
+    # Heuristic for complexity: keywords or length
+    is_complex = len(user_input.split()) > 15 or " and " in user_input or " then " in user_input or "after" in user_input
+    
+    if is_complex:
+        update_status("🧠 Generating Plan...")
+        plan = await generate_plan(user_input)
+        
+        if plan and len(plan) > 1:
+            update_status(f"📋 Plan: {len(plan)} Steps")
+            results = []
+            for i, step in enumerate(plan):
+                if stop_execution_flag:
+                    update_status("🛑 Plan Aborted.")
+                    return "Execution Stopped."
+                    
+                update_status(f"⚙️ Step {i+1}/{len(plan)}: {step}")
+                res = await _execute_step_logic(step)
+                results.append(f"Step {i+1}: {res}")
+            
+            final_res = "\n".join(results)
+            task_history.append(f"Plan: {user_input} -> {final_res}")
+            return final_res
+
+    # Fallback to single step execution
+    res = await _execute_step_logic(user_input)
+    task_history.append(f"Cmd: {user_input} -> {res}")
+    return res

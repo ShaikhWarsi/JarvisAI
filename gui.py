@@ -3,6 +3,7 @@ import threading
 import asyncio
 import logging
 import os
+import pyautogui
 from PyQt5.QtWidgets import (
     QApplication, QMainWindow, QLabel, QLineEdit, QVBoxLayout, QWidget, 
     QPushButton, QHBoxLayout, QGraphicsDropShadowEffect, QSystemTrayIcon, QMenu, QAction, QTextEdit
@@ -44,9 +45,22 @@ class ModernAssistant(QMainWindow):
     
     def __init__(self):
         super().__init__()
+        
+        # Override task_manager.speak to use our GUI method
+        # This allows background tasks to speak through the main UI loop
+        task_manager.speak = self.handle_external_speech
+        
+        # Connect task_manager status updates to UI
+        task_manager.set_status_callback(self.update_status_signal.emit)
+
         self.listening = True
         self.is_processing = False
         self.drag_pos = None
+        
+        # Typewriter Queue
+        self.typing_queue = []
+        self.typewriter_timer = QTimer(self)
+        self.typewriter_timer.timeout.connect(self._process_typewriter_queue)
         
         # Async Worker
         self.worker = Worker()
@@ -128,6 +142,13 @@ class ModernAssistant(QMainWindow):
         self.top_layout.addWidget(self.input_field)
 
         # 3. Action Buttons
+        self.vision_btn = QPushButton("📷", self)
+        self.vision_btn.setCursor(Qt.PointingHandCursor)
+        self.vision_btn.clicked.connect(self.analyze_screen)
+        self.style_button(self.vision_btn, color="#AAAAAA")
+        self.vision_btn.setToolTip("Analyze Screen Context (Vision)")
+        self.top_layout.addWidget(self.vision_btn)
+
         self.mic_btn = QPushButton("🎤", self)
         self.mic_btn.setCursor(Qt.PointingHandCursor)
         self.mic_btn.clicked.connect(self.toggle_listening)
@@ -315,6 +336,23 @@ class ModernAssistant(QMainWindow):
             self.status_timer.stop()
             self.shadow.setBlurRadius(30)
 
+        elif "Error" in text or "🔴" in text:
+            self.status_indicator.setStyleSheet("color: #FF0000;") # Red
+            self.shadow.setColor(QColor(255, 0, 0, 200))
+            self.glow_timer.start(100) # Fast pulse
+            self.shadow.setBlurRadius(40)
+
+        elif "Analyzing" in text or "🟡" in text:
+            self.status_indicator.setStyleSheet("color: #FFA500;") # Orange/Yellow
+            self.shadow.setColor(QColor(255, 165, 0, 180))
+            self.glow_timer.start(50)
+
+        elif "Patch" in text or "🟢" in text:
+            self.status_indicator.setStyleSheet("color: #00FF00;") # Green
+            self.shadow.setColor(QColor(0, 255, 0, 180))
+            self.glow_timer.stop()
+            self.shadow.setBlurRadius(30)
+
         elif "Stopped" in text:
             self.status_indicator.setStyleSheet("color: #FF5555;") # Red
             self.shadow.setColor(QColor(255, 85, 85, 150))
@@ -331,9 +369,11 @@ class ModernAssistant(QMainWindow):
         if config.SAFE_MODE:
             self.style_button(self.safe_btn, color="#00FF00")
             self.show_result("Safe Mode Enabled. Dangerous actions will require confirmation.")
+            self.update_status_signal.emit("SAFE MODE ACTIVE")
         else:
             self.style_button(self.safe_btn, color="#AAAAAA")
             self.show_result("Safe Mode Disabled. Running in Autonomous Mode.")
+            self.update_status_signal.emit("Autonomous Mode")
 
     def toggle_monitor(self):
         if not hasattr(self, 'monitor'):
@@ -390,14 +430,67 @@ class ModernAssistant(QMainWindow):
 
         # Append to Output Area with Timestamp
         timestamp = QDateTime.currentDateTime().toString("HH:mm:ss")
-        # Ensure HTML is safe or escaped if needed, but for simple text it's fine.
-        # Using insertHtml to append colored text
-        self.output_area.moveCursor(QTextCursor.End)
-        self.output_area.insertHtml(f"<span style='color: #888888;'>[{timestamp}]</span> <span style='color: {color};'>{text}</span><br>")
+        
+        # Prepare for typewriter
+        prefix_html = f"<span style='color: #888888;'>[{timestamp}]</span> <span style='color: {color};'>"
+        
+        # Queue the content
+        self.typing_queue.append({'type': 'html', 'content': prefix_html})
+        for char in text:
+            self.typing_queue.append({'type': 'text', 'content': char})
+        self.typing_queue.append({'type': 'html', 'content': "</span><br>"})
+        self.typing_queue.append({'type': 'ui_update', 'action': 'reset_input'})
+        
+        if not self.typewriter_timer.isActive():
+            self.typewriter_timer.start(10) # 10ms per char
+
+    def _process_typewriter_queue(self):
+        if not self.typing_queue:
+            self.typewriter_timer.stop()
+            return
+            
+        item = self.typing_queue.pop(0)
+        
         self.output_area.moveCursor(QTextCursor.End)
         
-        self.input_field.clear()
-        self.input_field.setPlaceholderText("Ready...")
+        if item['type'] == 'html':
+            self.output_area.insertHtml(item['content'])
+        elif item['type'] == 'ui_update':
+            if item['action'] == 'reset_input':
+                self.input_field.setPlaceholderText("Ready...")
+        else:
+            self.output_area.insertPlainText(item['content'])
+            
+        self.output_area.moveCursor(QTextCursor.End)
+        # Auto-scroll
+        sb = self.output_area.verticalScrollBar()
+        sb.setValue(sb.maximum())
+
+    def handle_external_speech(self, text):
+        """Called by task_manager to speak through GUI loop."""
+        self.update_status_signal.emit(f"Speaking...")
+        self.worker.run_task(speech_engine.speak(text))
+
+    def analyze_screen(self):
+        """Takes a screenshot and asks AI to analyze it."""
+        self.update_status_signal.emit("Analyzing Screen Context...")
+        self.vision_btn.setStyleSheet("color: #00FFFF; border: none; background: transparent;") 
+        self.worker.run_task(self._analyze_screen_async())
+
+    async def _analyze_screen_async(self):
+        try:
+            screenshot_path = os.path.join(os.getcwd(), "screen_context.png")
+            # Run screenshot in thread to avoid UI freeze if slow
+            await asyncio.to_thread(pyautogui.screenshot, screenshot_path)
+            
+            prompt = "Analyze this screen. What is the user doing? What is the context? Be brief."
+            response = await ai_engine.analyze_image(screenshot_path, prompt)
+            
+            self.update_result_signal.emit(f"Vision: {response}")
+            self.update_status_signal.emit("Analysis Complete")
+            
+        except Exception as e:
+            self.update_result_signal.emit(f"Vision Error: {e}")
 
     def process_text_input(self):
         text = self.input_field.text()
@@ -471,6 +564,7 @@ class ModernAssistant(QMainWindow):
         """Emergency Stop."""
         self.is_processing = False
         speech_engine.stop_speaking()
+        task_manager.stop_execution() # Stop backend tasks
         self.glow_timer.stop()
         self.update_status_signal.emit("Stopped.")
 
