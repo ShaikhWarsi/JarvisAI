@@ -152,69 +152,92 @@ class ModernAssistant(QMainWindow):
         self.top_layout.addWidget(self.input_field)
 
         # 3. Action Buttons
-        self.vision_btn = QPushButton("📷", self)
+        self.vision_btn = QPushButton("📷 Vision", self)
         self.vision_btn.setCursor(Qt.PointingHandCursor)
         self.vision_btn.clicked.connect(self.analyze_screen)
-        self.style_button(self.vision_btn, color="#AAAAAA")
+        self.style_button(self.vision_btn, color="#AAAAAA", width=100)
         self.vision_btn.setToolTip("Analyze Screen Context (Vision)")
         self.top_layout.addWidget(self.vision_btn)
 
-        self.mic_btn = QPushButton("🎤", self)
+        self.mic_btn = QPushButton("🎤 Mic", self)
         self.mic_btn.setCursor(Qt.PointingHandCursor)
         self.mic_btn.clicked.connect(self.toggle_listening)
-        self.style_button(self.mic_btn)
+        self.style_button(self.mic_btn, width=80)
         self.top_layout.addWidget(self.mic_btn)
 
-        self.stop_btn = QPushButton("🛑", self)
+        self.stop_btn = QPushButton("🛑 Stop", self)
         self.stop_btn.setCursor(Qt.PointingHandCursor)
         self.stop_btn.clicked.connect(self.stop_action)
-        self.style_button(self.stop_btn, color="#FF5555")
+        self.style_button(self.stop_btn, color="#FF5555", width=90)
         self.top_layout.addWidget(self.stop_btn)
 
-        self.ghost_btn = QPushButton("👻", self)
-        self.ghost_btn.setCursor(Qt.PointingHandCursor)
-        self.ghost_btn.clicked.connect(self.toggle_monitor)
-        self.style_button(self.ghost_btn, color="#AAAAAA")
-        self.ghost_btn.setToolTip("Active Monitoring (Ghost Mode)")
-        self.top_layout.addWidget(self.ghost_btn)
+        # Settings Menu Button
+        self.settings_btn = QPushButton("⚙️ Settings", self)
+        self.settings_btn.setCursor(Qt.PointingHandCursor)
+        self.style_button(self.settings_btn, color="#AAAAAA", width=110)
+        self.settings_btn.setToolTip("Advanced Settings")
+        
+        self.settings_menu = QMenu(self)
+        self.settings_menu.setStyleSheet("""
+            QMenu {
+                background-color: #222222;
+                color: white;
+                border: 1px solid #444444;
+                border-radius: 5px;
+            }
+            QMenu::item {
+                padding: 10px 30px;
+                border-radius: 3px;
+            }
+            QMenu::item:selected {
+                background-color: #444444;
+            }
+            QMenu::separator {
+                height: 1px;
+                background: #444444;
+                margin: 5px 10px;
+            }
+        """)
 
-        self.learn_btn = QPushButton("👁️", self)
-        self.learn_btn.setCursor(Qt.PointingHandCursor)
-        self.learn_btn.clicked.connect(self.toggle_learning)
-        self.style_button(self.learn_btn, color="#AAAAAA")
-        self.learn_btn.setToolTip("One-Shot Learning (Watch & Learn)")
-        self.top_layout.addWidget(self.learn_btn)
-        
-        # Silent Mode Toggle
-        self.silent_btn = QPushButton("🔇", self)
-        self.silent_btn.setCursor(Qt.PointingHandCursor)
-        self.silent_btn.setCheckable(True)
-        self.silent_btn.setChecked(False)
-        self.silent_btn.clicked.connect(self.toggle_silent_mode)
-        self.style_button(self.silent_btn, color="#AAAAAA")
-        self.silent_btn.setToolTip("Silent Mode (Toggle Speech)")
-        self.top_layout.addWidget(self.silent_btn)
-        
-        # Safe Mode Toggle
-        self.safe_btn = QPushButton("🛡️", self)
-        self.safe_btn.setCursor(Qt.PointingHandCursor)
-        self.safe_btn.setCheckable(True)
-        self.safe_btn.setChecked(config.SAFE_MODE)
-        self.safe_btn.clicked.connect(self.toggle_safe_mode)
-        self.style_button(self.safe_btn, color="#00FF00" if config.SAFE_MODE else "#AAAAAA")
-        self.safe_btn.setToolTip("Safe Mode (Human-in-the-Loop)")
-        self.top_layout.addWidget(self.safe_btn)
+        # 1. Ghost Mode (Monitor)
+        self.monitor_action = QAction("� Ghost Monitor", self)
+        self.monitor_action.setCheckable(True)
+        self.monitor_action.triggered.connect(self.toggle_monitor)
+        self.settings_menu.addAction(self.monitor_action)
+
+        # 2. Learn Workflow
+        self.learn_action = QAction("👁️ Watch & Learn", self)
+        self.learn_action.triggered.connect(self.toggle_learning)
+        self.settings_menu.addAction(self.learn_action)
+
+        self.settings_menu.addSeparator()
+
+        # 3. Silent Mode
+        self.silent_action = QAction("🔇 Silent Mode", self)
+        self.silent_action.setCheckable(True)
+        self.silent_action.triggered.connect(self.toggle_silent_mode)
+        self.settings_menu.addAction(self.silent_action)
+
+        # 4. Safe Mode
+        self.safe_action = QAction("🛡️ Safe Mode", self)
+        self.safe_action.setCheckable(True)
+        self.safe_action.setChecked(config.SAFE_MODE)
+        self.safe_action.triggered.connect(self.toggle_safe_mode)
+        self.settings_menu.addAction(self.safe_action)
+
+        self.settings_btn.setMenu(self.settings_menu)
+        self.top_layout.addWidget(self.settings_btn)
 
         self.min_btn = QPushButton("➖", self)
         self.min_btn.setCursor(Qt.PointingHandCursor)
         self.min_btn.clicked.connect(self.showMinimized)
-        self.style_button(self.min_btn, color="#AAAAAA")
+        self.style_button(self.min_btn, color="#AAAAAA", width=40)
         self.top_layout.addWidget(self.min_btn)
 
         self.close_btn = QPushButton("✖", self)
         self.close_btn.setCursor(Qt.PointingHandCursor)
         self.close_btn.clicked.connect(self.close)
-        self.style_button(self.close_btn, color="#FF5555")
+        self.style_button(self.close_btn, color="#FF5555", width=40)
         self.top_layout.addWidget(self.close_btn)
         
         self.main_layout.addWidget(self.top_bar_widget)
@@ -274,21 +297,22 @@ class ModernAssistant(QMainWindow):
         self.shadow.setOffset(0, 0)
         self.central_widget.setGraphicsEffect(self.shadow)
 
-    def style_button(self, btn, color="#FFFFFF"):
-        btn.setFont(QFont("Segoe UI", 16))
+    def style_button(self, btn, color="#FFFFFF", width=40):
+        btn.setFont(QFont("Segoe UI", 10 if width > 40 else 16))
         btn.setStyleSheet(f"""
             QPushButton {{
                 background: transparent;
-                border: none;
+                border: 1px solid rgba(255, 255, 255, 10);
                 color: {color};
+                padding: 5px;
             }}
             QPushButton:hover {{
                 color: white;
                 background-color: rgba(255, 255, 255, 20);
-                border-radius: 15px;
+                border-radius: 5px;
             }}
         """)
-        btn.setFixedSize(40, 40)
+        btn.setFixedSize(width, 40)
 
     def init_tray(self):
         """Initialize System Tray Icon."""
@@ -501,25 +525,21 @@ class ModernAssistant(QMainWindow):
         self.input_field.setPlaceholderText(msg)
 
     def toggle_safe_mode(self):
-        config.SAFE_MODE = self.safe_btn.isChecked()
+        config.SAFE_MODE = self.safe_action.isChecked()
         if config.SAFE_MODE:
-            self.style_button(self.safe_btn, color="#00FF00")
             self.show_result("Safe Mode Enabled. Dangerous actions will require confirmation.")
             self.update_status_signal.emit("SAFE MODE ACTIVE")
         else:
-            self.style_button(self.safe_btn, color="#AAAAAA")
             self.show_result("Safe Mode Disabled. Running in Autonomous Mode.")
             self.update_status_signal.emit("Autonomous Mode")
 
     def toggle_silent_mode(self):
-        is_silent = self.silent_btn.isChecked()
+        is_silent = self.silent_action.isChecked()
         speech_engine.set_silent_mode(is_silent)
         
         if is_silent:
-            self.style_button(self.silent_btn, color="#FF5555") # Red for silent
             self.show_result("Silent Mode Enabled. Shhh.")
         else:
-            self.style_button(self.silent_btn, color="#AAAAAA")
             self.show_result("Silent Mode Disabled. I can speak again.")
 
 
@@ -531,11 +551,11 @@ class ModernAssistant(QMainWindow):
             
         if self.monitor.running:
             self.monitor.stop()
-            self.ghost_btn.setStyleSheet("color: #AAAAAA;") # Gray
+            self.monitor_action.setChecked(False)
             self.show_result("Active Monitoring Stopped.")
         else:
             self.monitor.start()
-            self.ghost_btn.setStyleSheet("color: #00FF00;") # Green
+            self.monitor_action.setChecked(True)
             self.show_result("Active Monitoring Started (Ghost Mode). I'll watch for errors.")
 
     def handle_monitor_alert(self, message):
@@ -554,11 +574,9 @@ class ModernAssistant(QMainWindow):
             
         if self.learner.recording:
             self.learner.stop_learning()
-            self.learn_btn.setStyleSheet("color: #AAAAAA;") # Gray
             self.show_result("Stopped watching. Analyzing workflow... (this may take a moment)")
         else:
             self.learner.start_learning()
-            self.learn_btn.setStyleSheet("color: #FF0000;") # Red for recording
             self.show_result("I am watching. I will minimize now. Restore me to stop.")
             QTimer.singleShot(2000, self.showMinimized) # Give time to read
             

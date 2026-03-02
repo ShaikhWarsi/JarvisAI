@@ -14,14 +14,13 @@ GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY", "")
 # Groq API Key
 GROQ_API_KEY = os.getenv("GROQ_API_KEY", "")
 
-# Groq Models (Reliable List for Fallback)
+# Groq Models (Updated for March 2026 Deprecations)
 GROQ_MODELS = [ 
-    "llama-3.3-70b-versatile", 
+    "openai/gpt-oss-120b",
+    "llama-3.3-70b-specdec",
+    "llama-3.3-70b-versatile",
     "llama-3.1-8b-instant", 
-    "llama3-70b-8192", 
-    "llama3-8b-8192", 
-    "mixtral-8x7b-32768", 
-    "gemma2-9b-it" 
+    "mixtral-8x7b-32768"
 ]
 
 # Search API Keys (Optional)

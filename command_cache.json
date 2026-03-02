@@ -1,265 +1,126 @@
 {
-  "cmd_13": {
-    "tool": "t",
+  "search for dhruv rathee": {
+    "tool": "get_web_elements",
     "args": {},
-    "timestamp": 1771738595.105964
+    "timestamp": 1772385625.1459742
   },
-  "cmd_14": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738596.105964
+  "play despacito on spotify": {
+    "tool": "open_application",
+    "args": {
+      "app_name": "spotify"
+    },
+    "timestamp": 1772385877.588165
   },
-  "cmd_15": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738597.105964
-  },
-  "cmd_16": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738598.105964
-  },
-  "cmd_17": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738599.105964
-  },
-  "cmd_18": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738600.105964
-  },
-  "cmd_19": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738601.105964
-  },
-  "cmd_20": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738602.105964
-  },
-  "cmd_21": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738603.105964
-  },
-  "cmd_22": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738604.105964
-  },
-  "cmd_23": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738605.105964
-  },
-  "cmd_24": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738606.105964
-  },
-  "cmd_25": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738607.105964
-  },
-  "cmd_26": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738608.105964
-  },
-  "cmd_27": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738609.105964
-  },
-  "cmd_28": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738610.105964
-  },
-  "cmd_29": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738611.105964
-  },
-  "cmd_30": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738612.105964
-  },
-  "cmd_31": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738613.105964
-  },
-  "cmd_32": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738614.105964
-  },
-  "cmd_33": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738615.105964
-  },
-  "cmd_34": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738616.105964
-  },
-  "cmd_35": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738617.105964
-  },
-  "cmd_36": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738618.105964
-  },
-  "cmd_37": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738619.105964
-  },
-  "cmd_38": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738620.105964
-  },
-  "cmd_39": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738621.105964
-  },
-  "cmd_40": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738622.105964
-  },
-  "cmd_41": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738623.105964
-  },
-  "cmd_42": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738624.105964
-  },
-  "cmd_43": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738625.105964
-  },
-  "cmd_44": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738626.105964
-  },
-  "cmd_45": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738627.105964
-  },
-  "cmd_46": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738628.105964
-  },
-  "cmd_47": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738629.105964
-  },
-  "cmd_48": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738630.105964
-  },
-  "cmd_49": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738631.105964
-  },
-  "cmd_50": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738632.105964
-  },
-  "cmd_51": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738633.105964
-  },
-  "cmd_52": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738634.105964
-  },
-  "cmd_53": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738635.105964
-  },
-  "cmd_54": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738636.105964
-  },
-  "cmd_55": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738637.105964
-  },
-  "cmd_56": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738638.105964
-  },
-  "cmd_57": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738639.105964
-  },
-  "cmd_58": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738640.105964
-  },
-  "cmd_59": {
-    "tool": "t",
-    "args": {},
-    "timestamp": 1771738641.105964
+  "play despacito": {
+    "tool": "web_click_id",
+    "args": {
+      "element_id": 4
+    },
+    "timestamp": 1772385953.4283354
   },
   "open youtube": {
-    "tool": "open_application",
-    "args": {
-      "app_name": "youtube"
-    },
-    "timestamp": 1771738857.3329391
-  },
-  "click search bar": {
-    "tool": "computer_use_fallback",
-    "args": {
-      "instruction": "Click the search bar"
-    },
-    "timestamp": 1771739047.0387523
-  },
-  "search for outfits on reddit": {
-    "tool": "open_application",
-    "args": {
-      "app_name": "google chrome"
-    },
-    "timestamp": 1771739600.8163233
-  },
-  "open reddit": {
     "tool": "open_website",
     "args": {
-      "url": "https://www.reddit.com"
+      "url": "https://www.youtube.com"
     },
-    "timestamp": 1771739523.2327044
+    "timestamp": 1772386002.40839
+  },
+  "play any video": {
+    "tool": "computer_use_fallback",
+    "args": {
+      "instruction": "Play any video."
+    },
+    "timestamp": 1772386128.8093731
+  },
+  "save it to a python file on my desktop": {
+    "tool": "run_python_script",
+    "args": {
+      "script_path": "C:\\Users\\User\\Desktop\\hello.py"
+    },
+    "timestamp": 1772386249.0910003
+  },
+  "save it in a python file in my desktop": {
+    "tool": "create_file",
+    "args": {
+      "content": "print('Hello, World!')",
+      "file_path": "C:\\Users\\User\\Desktop\\hello.py"
+    },
+    "timestamp": 1772386265.835612
+  },
+  "open pewdiepie channel": {
+    "tool": "open_website",
+    "args": {
+      "url": "https://www.youtube.com/@pewdiepie"
+    },
+    "timestamp": 1772386600.7481833
+  },
+  "write a hello world program in python adn save it in desktop": {
+    "tool": "create_file",
+    "args": {
+      "content": "# hello_world.py\nprint(\"Hello, World!\")\n",
+      "file_path": "Desktop/hello_world.py"
+    },
+    "timestamp": 1772386621.8429468
+  },
+  "write a hello world program in python in desktop": {
+    "tool": "create_file",
+    "args": {
+      "content": "print('Hello, world!')",
+      "file_path": "C:\\Users\\Public\\Desktop\\hello_world.py"
+    },
+    "timestamp": 1772386889.1315794
+  },
+  "write a hello world program in my desktop": {
+    "tool": "create_file",
+    "args": {
+      "content": "print(\"Hello, World!\")",
+      "file_path": "C:\\Users\\Public\\Desktop\\hello_world.py"
+    },
+    "timestamp": 1772387892.74161
+  },
+  "delete that file now": {
+    "tool": "delete_file",
+    "args": {
+      "file_path": "C:\\Users\\Public\\Desktop\\hello_world.py"
+    },
+    "timestamp": 1772387917.2031403
+  },
+  "open amd's youtube channel": {
+    "tool": "open_website",
+    "args": {
+      "url": "https://www.youtube.com/@AMD"
+    },
+    "timestamp": 1772388825.240656
+  },
+  "write a python code for hello world in my desktop": {
+    "tool": "create_file",
+    "args": {
+      "content": "print(\"Hello, World!\")\n",
+      "file_path": "~/Desktop/hello_world.py"
+    },
+    "timestamp": 1772388635.2903621
+  },
+  "write a hello world program in python on my desktop": {
+    "tool": "create_file",
+    "args": {
+      "content": "print('Hello, World!')",
+      "file_path": "C:\\Users\\Public\\Desktop\\hello_world.py"
+    },
+    "timestamp": 1772388887.5031717
+  },
+  "write a gcd program in python on my desktop": {
+    "tool": "create_file",
+    "args": {
+      "content": "def gcd(a: int, b: int) -> int:\n    \"\"\"Return the greatest common divisor of a and b using Euclid's algorithm.\"\"\"\n    while b:\n        a, b = b, a % b\n    return abs(a)\n\nif __name__ == \"__main__\":\n    import sys\n    if len(sys.argv) == 3:\n        try:\n            x = int(sys.argv[1])\n            y = int(sys.argv[2])\n            print(f\"gcd({x}, {y}) = {gcd(x, y)}\")\n        except ValueError:\n            print(\"Please provide two integer arguments.\")\n    else:\n        print(\"Usage: python gcd.py <int1> <int2>\")\n",
+      "file_path": "C:\\Users\\Public\\Desktop\\gcd.py"
+    },
+    "timestamp": 1772388918.8289006
+  },
+  "delete the gcd program": {
+    "tool": "delete_file",
+    "args": {
+      "file_path": "C:\\Users\\Public\\Desktop\\gcd.py"
+    },
+    "timestamp": 1772388935.2119648
   }
 }

@@ -18,9 +18,53 @@ genai.configure(api_key=GOOGLE_API_KEY)
 model = None
 
 async def analyze_image(image_path: str, prompt: str):
-    """Analyzes an image using Gemini 1.5 Flash Vision capabilities."""
+    """Analyzes an image using Vision capabilities (Prioritizes Groq Llama 3.2 Vision)."""
+    global groq_client
+    
+    # 1. Try Groq Vision (Llama 3.2) First
+    if groq_client:
+        try:
+            import base64
+            # Load and encode image
+            if not os.path.exists(image_path):
+                 return "Error: Image file not found."
+            
+            with open(image_path, "rb") as image_file:
+                base64_image = base64.b64encode(image_file.read()).decode('utf-8')
+            
+            logging.info("Using Groq Vision (llama-3.2-11b-vision-preview)")
+            # Using Llama 3.2 Vision for Groq
+            response = await asyncio.to_thread(
+                groq_client.chat.completions.create,
+                model="llama-3.2-11b-vision-preview",
+                messages=[
+                    {
+                        "role": "user",
+                        "content": [
+                            {"type": "text", "text": prompt},
+                            {
+                                "type": "image_url",
+                                "image_url": {
+                                    "url": f"data:image/jpeg;base64,{base64_image}",
+                                },
+                            },
+                        ],
+                    }
+                ],
+                max_tokens=1024
+            )
+            return response.choices[0].message.content
+        except Exception as e:
+            logging.error(f"Groq Vision analysis failed: {e}. Falling back to Gemini...")
+            # Fall through to Gemini if Groq fails
+            
+    # 2. Fallback to Gemini Vision if Groq is unavailable or fails
     try:
-        # Initialize model for vision (separate from chat)
+        if not GOOGLE_API_KEY:
+             return "Error: Neither Groq Vision nor GOOGLE_API_KEY (Gemini) are available for vision analysis."
+        
+        logging.info("Using Gemini Vision (gemini-1.5-flash)")
+        # Initialize model for vision
         vision_model = genai.GenerativeModel('gemini-1.5-flash')
         
         # Load image
@@ -30,11 +74,10 @@ async def analyze_image(image_path: str, prompt: str):
         img = Image.open(image_path)
         
         # Generate content
-        # Run in thread to avoid blocking event loop
         response = await asyncio.to_thread(vision_model.generate_content, [prompt, img])
         return response.text
     except Exception as e:
-        logging.error(f"Vision analysis failed: {e}")
+        logging.error(f"Gemini Vision analysis failed: {e}")
         return f"Error analyzing image: {e}"
 
 chat_session = None
@@ -103,12 +146,11 @@ You are Jarvis, an Autonomous Agent specialized in Developer Workflows.
 You are an expert pair programmer, debugger, and system architect.
 Your goal is to accelerate development tasks: coding, debugging, and file management.
 
-### IMPORTANT: TOOL CALLING FORMAT
-- You MUST use the standard JSON tool calling schema provided by the system.
-- **DO NOT** use XML tags like `<function>` or `<tool_code>`.
-- **DO NOT** output markdown for tool calls.
-- **DO NOT** include any conversational text before or after the tool call.
-- Just output the JSON object for the function call.
+### TOOL CALLING PROTOCOL
+- You have access to a variety of tools. Use them when needed to fulfill the user's request.
+- When you use a tool, the system will provide the result.
+- Once you have the final answer or have completed the task, provide a clear, concise response in natural language.
+- **DO NOT** just output raw JSON unless you are specifically asked for it. Use the native tool calling mechanism.
 
 ### IDENTITY & BEHAVIOR:
 - **Tone**: Professional, precise, and efficient. No fluff. Think "Senior Engineer" or "CTO".
