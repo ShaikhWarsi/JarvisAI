@@ -236,7 +236,7 @@ class ModernAssistant(QMainWindow):
 
         self.close_btn = QPushButton("✖", self)
         self.close_btn.setCursor(Qt.PointingHandCursor)
-        self.close_btn.clicked.connect(self.close)
+        self.close_btn.clicked.connect(self.force_close)
         self.style_button(self.close_btn, color="#FF5555", width=40)
         self.top_layout.addWidget(self.close_btn)
         
@@ -359,6 +359,10 @@ class ModernAssistant(QMainWindow):
 
     def mouseReleaseEvent(self, event):
         self.drag_pos = None
+
+    def closeEvent(self, event):
+        self.force_close()
+        event.accept()
 
     def paintEvent(self, event):
         # Optional: Custom painting if stylesheet isn't enough
@@ -748,19 +752,37 @@ class ModernAssistant(QMainWindow):
         """Emergency Stop."""
         self.is_processing = False
         speech_engine.stop_speaking()
-        task_manager.stop_execution() # Stop backend tasks
+        task_manager.stop_execution()
         self.glow_timer.stop()
         self.update_status_signal.emit("Stopped.")
 
+    def force_close(self):
+        """Force close both GUI and terminal."""
+        print("Shutting down SmudgeAI...")
+        speech_engine.stop_speaking()
+        try:
+            task_manager.stop_execution()
+        except:
+            pass
+        try:
+            import os
+            os._exit(0)
+        except:
+            pass
+        QApplication.instance().quit()
+
 def run_gui():
     app = QApplication(sys.argv)
-    app.setStyle("Fusion") # Better cross-platform look
-    
-    # Set App Icon
-    app_icon = QIcon("icon.png") # Placeholder
+    app.setStyle("Fusion")
+
+    app.setQuitOnLastWindowClosed(True)
+    app.setApplicationName("SmudgeAI")
+
+    app_icon = QIcon("icon.png")
     app.setWindowIcon(app_icon)
 
     window = ModernAssistant()
+    window.setWindowTitle("SmudgeAI")
     print("GUI Started Successfully")
     window.show()
     sys.exit(app.exec_())

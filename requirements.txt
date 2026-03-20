@@ -16,4 +16,7 @@ pynput
 python-dotenv
 groq
 faster-whisper
+psutil
+opencv-python
+numpy
 

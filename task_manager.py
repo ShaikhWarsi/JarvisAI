@@ -25,6 +25,8 @@ import pyperclip
 import pythoncom
 from types import SimpleNamespace
 from skill_manager import skill_manager
+import enhanced_system
+import desktop_state
 
 # logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
 
@@ -143,15 +145,26 @@ def speak(text):
     # This will be overridden by gui.py to use the real speech engine
     pass
 
-def _maximize_active_window():
-    """Helper to maximize the active window after launch using a polling loop."""
+def _maximize_target_window(target_title_hint: str = None):
+    """Helper to maximize a specific window after launch using a polling loop.
+    
+    Args:
+        target_title_hint: App name to look for in window title. If None, maximizes active window.
+    """
     start_time = time.time()
-    while time.time() - start_time < 5:  # 5 second timeout
+    while time.time() - start_time < 5:
         try:
-            win = gw.getActiveWindow()
-            if win:
-                win.maximize()
-                return
+            if target_title_hint:
+                matching_windows = gw.getWindowsWithTitle(target_title_hint)
+                if matching_windows:
+                    target_win = matching_windows[0]
+                    target_win.maximize()
+                    return
+            else:
+                win = gw.getActiveWindow()
+                if win:
+                    win.maximize()
+                    return
         except:
             pass
         time.sleep(0.1)
@@ -179,9 +192,8 @@ def open_application(app_name: str):
             app_id = result.stdout.strip()
             
             if app_id:
-                # Use shell:AppsFolder to launch UWP or Win32 apps by AppID
                 os.startfile(f"shell:AppsFolder\\{app_id}")
-                _maximize_active_window()
+                _maximize_target_window(app_name)
                 return f"Opened {app_name} via PowerShell."
         except Exception:
             pass
@@ -196,7 +208,7 @@ def open_application(app_name: str):
                 os.startfile(path)
             else:
                 subprocess.Popen([path])
-            _maximize_active_window()
+            _maximize_target_window(app_name)
             return f"Opened {app_name} at {path}"
         except Exception as e:
             return f"Error opening {app_name}: {e}"
@@ -1123,7 +1135,22 @@ AVAILABLE_TOOLS = {
     "read_screen_text": read_screen_text,
     "organize_files_by_date": organize_files_by_date,
     "resize_image": resize_image,
-    "get_wifi_networks": get_wifi_networks
+    "get_wifi_networks": get_wifi_networks,
+    "robust_desktop_click": enhanced_system.robust_desktop_click,
+    "execute_complex_task": enhanced_system.execute_complex_task,
+    "get_desktop_snapshot": enhanced_system.get_desktop_snapshot,
+    "enhanced_element_find": enhanced_system.enhanced_element_find,
+    "robust_drag_and_drop": enhanced_system.robust_drag_and_drop,
+    "wait_for_element": enhanced_system.wait_for_element,
+    "wait_for_state_change": enhanced_system.wait_for_state_change,
+    "press_keyboard_shortcut": enhanced_system.press_keyboard_shortcut,
+    "type_text_async": enhanced_system.type_text_async,
+    "activate_window": enhanced_system.activate_window,
+    "minimize_window": enhanced_system.minimize_window,
+    "maximize_window": enhanced_system.maximize_window,
+    "close_window": enhanced_system.close_window,
+    "get_window_stack_order": enhanced_system.get_window_stack_order,
+    "get_app_windows": enhanced_system.get_app_windows
 }
 
 async def generate_plan(user_input: str):
@@ -1169,11 +1196,17 @@ def get_system_context():
     """Gathers current system state for AI context."""
     try:
         active_window = gw.getActiveWindow()
-        active_title = active_window.title if active_window else "Unknown"
-        
-        # Limit title length
-        all_titles = [w.title for w in gw.getAllTitles() if w.title]
-        all_titles_str = ", ".join(all_titles[:5]) # Limit to 5 for brevity
+        active_title = str(active_window.title) if active_window else "Unknown"
+
+        all_titles = []
+        for w in gw.getAllWindows():
+            try:
+                title = w.title
+                if title and isinstance(title, str):
+                    all_titles.append(title)
+            except:
+                pass
+        all_titles_str = ", ".join(str(t) for t in all_titles[:5])
         
         clipboard_content = ""
         try:
@@ -1222,7 +1255,8 @@ async def _execute_step_logic(user_input: str, screenshot_path: str = None):
         
         try:
             func = AVAILABLE_TOOLS[tool_name]
-            if inspect.iscoroutinefunction(func):
+            import inspect as _local_inspect
+            if _local_inspect.iscoroutinefunction(func):
                 res = await func(**tool_args)
             else:
                 res = func(**tool_args)

@@ -91,20 +91,27 @@ current_tools_list = []
 async def _get_groq_response(messages, tools=None):
     """Internal helper to get response from Groq with model cycling."""
     global current_groq_model_index, groq_client
-    
-    # Convert tools to Groq schema
+
     groq_tools = None
     if tools:
         groq_tools = [get_tool_schema(t) for t in tools]
 
     max_retries = len(GROQ_MODELS)
-    
+    start_index = current_groq_model_index
+
     for attempt in range(max_retries):
         model_name = GROQ_MODELS[current_groq_model_index]
+
+        if groq_tools:
+            if "llama-3.3-70b-versatile" in model_name or "gpt-oss" in model_name:
+                current_groq_model_index = (current_groq_model_index + 1) % len(GROQ_MODELS)
+                if current_groq_model_index == start_index:
+                    break
+                continue
+
         try:
             logging.info(f"Using Groq Model: {model_name}")
-            
-            # Construct kwargs dynamically to avoid passing None for tool_choice
+
             kwargs = {
                 "model": model_name,
                 "messages": messages,
@@ -113,32 +120,29 @@ async def _get_groq_response(messages, tools=None):
             if groq_tools:
                 kwargs["tools"] = groq_tools
                 kwargs["tool_choice"] = "auto"
-            
-            # Create completion
+
             completion = await asyncio.to_thread(
                 groq_client.chat.completions.create,
                 **kwargs
             )
-            
+
             return completion
-            
+
         except groq.RateLimitError:
             logging.warning(f"Rate limit hit for {model_name}. Cycling model...")
             current_groq_model_index = (current_groq_model_index + 1) % len(GROQ_MODELS)
-            await asyncio.sleep(1)
+            await asyncio.sleep(2)
             continue
-            
+
         except Exception as e:
             logging.error(f"Groq Error ({model_name}): {e}")
-            # Cycle on other errors too if it looks like a model availability issue or tool use failure (400)
-            # The specific error for tool failure is 400 with 'tool_use_failed'
             error_str = str(e).lower()
             if "rate limit" in error_str or "429" in error_str or "400" in error_str or "tool_use_failed" in error_str or "not found" in error_str:
                  current_groq_model_index = (current_groq_model_index + 1) % len(GROQ_MODELS)
-                 await asyncio.sleep(1)
+                 await asyncio.sleep(2)
                  continue
             return f"Error with Groq: {e}"
-            
+
     return "Error: All Groq models exhausted or failed."
 
 SYSTEM_INSTRUCTION = """

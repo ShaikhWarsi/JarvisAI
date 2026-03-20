@@ -1,63 +1,23 @@
 {
-  "sehore": {
-    "tool": "open_website",
+  "open chrome": {
+    "tool": "open_application",
     "args": {
-      "url": "https://wttr.in/Sehore"
+      "app_name": "chrome"
     },
-    "timestamp": 1773424955.3992298
+    "timestamp": 1773945188.150719
   },
-  "take_screenshot()": {
-    "tool": "take_screenshot",
-    "args": {},
-    "timestamp": 1773425023.6663454
-  },
-  "take a screenshot": {
-    "tool": "take_screenshot",
-    "args": null,
-    "timestamp": 1773425233.4590738
-  },
-  "save the screenshot to a file": {
-    "tool": "create_file",
+  "open telegram": {
+    "tool": "open_application",
     "args": {
-      "content": "",
-      "file_path": "screenshot.png"
+      "app_name": "telegram"
     },
-    "timestamp": 1773425274.4837456
+    "timestamp": 1773995326.3634214
   },
-  "play despacito on spotify": {
-    "tool": "computer_use_fallback",
+  "thank you.": {
+    "tool": "write_to_clipboard",
     "args": {
-      "instruction": "play despacito on spotify"
+      "text": "Thank you."
     },
-    "timestamp": 1773444445.310222
-  },
-  "b\u00e0 t\u1ecf b\u00e0 cha b\u1ed1 l\u00fac x\u01b0a": {
-    "tool": "computer_use_fallback",
-    "args": {
-      "instruction": " b\u00e0 t\u1ecf b\u00e0 cha b\u1ed1 l\u00fac x\u01b0a"
-    },
-    "timestamp": 1773509104.953142
-  },
-  "\u0939\u093e\u0901 \u092c\u0924\u093e \u092d\u093e\u0908 \u0915\u094d\u092f\u093e \u0915\u0930 \u0926\u094b": {
-    "tool": "computer_use_fallback",
-    "args": {
-      "instruction": " \u0939\u093e\u0901 \u092c\u0924\u093e \u092d\u093e\u0908 \u0915\u094d\u092f\u093e \u0915\u0930 \u0926\u094b"
-    },
-    "timestamp": 1773509136.4047966
-  },
-  "play despacito on youtube": {
-    "tool": "open_website",
-    "args": {
-      "url": "https://www.youtube.com/results?search_query=despacito"
-    },
-    "timestamp": 1773509194.8276744
-  },
-  "write a hello world python code in c drive": {
-    "tool": "create_file",
-    "args": {
-      "content": "print('Hello, World!')",
-      "file_path": "C:/Users/Username/Documents/hello_world.py"
-    },
-    "timestamp": 1773509279.5745242
+    "timestamp": 1773995878.8879418
   }
 }
