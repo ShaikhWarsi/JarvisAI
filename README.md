@@ -1,8 +1,7 @@
-# SmudgeAI - Autonomous Desktop AI Agent
+# SmudgeAI
 
-> **SmudgeAI** is a Windows-native autonomous desktop AI agent capable of understanding screen context, navigating UI elements, executing multi-step workflows, and performing actions with minimal human intervention.
+SmudgeAI is a Windows-native autonomous desktop AI agent that understands screen context through vision models and UI element trees, enabling it to navigate any application and execute complex multi-step workflows with minimal human intervention. It leverages LLM-based reasoning to adapt to unknown interfaces while maintaining security through built-in permission systems and safeguards.
 
----
 
 ## Table of Contents
 
